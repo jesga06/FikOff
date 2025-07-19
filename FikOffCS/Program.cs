@@ -1,5 +1,6 @@
 ﻿#nullable disable
-
+// the entirety of this code is AI generated, i just gave gemini my python code and said "rewrite this shit in c#" because
+// i already spent too much time trying to make the original one
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
