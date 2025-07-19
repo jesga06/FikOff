@@ -54,6 +54,8 @@ https://420.42.69.4:6969
 One IP per line and nothing more.
 
 ## Requirements
+* [.NET Desktop Runtime 8.0 (x64)](https://dotnet.microsoft.com/pt-br/download/dotnet) or later (for FikOffCS.exe)
+* [Python 3.6](https://www.python.org/downloads/) or later (for FikOff.py)
 * SPT Launcher's developer mode should be turned **ON** for FikOff to succesfully change the IP address.
 * Folder structure must be compatible (you need a `_fika` backup folder with the correct mod/plugin structure).
   * The folder above must have the following structure:
@@ -64,7 +66,8 @@ One IP per line and nothing more.
 * Your SPT install must use `SPT.Server.exe`, `SPT.Launcher.exe`, and the typical AKI layout.
 
 ## Installation
-literally just drop `fikoff.py` or `fikoff.exe` into your spt folder and make a shortcut for it
+literally just drop `FikOff.py` or `FikOffCS.exe` into your spt folder and make a shortcut for it
+
 ## Command-line args:
 `--launchmode`: will launch in the selected mode without the user having to input sp/mp/start
  * sp
