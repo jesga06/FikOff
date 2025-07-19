@@ -18,7 +18,8 @@ A small program that helps you switch between FIKA's coop and standard SPT's sin
 
 ## Mode switiching
 ### When switching to multiplayer:
-* FikOff tries to uninstall any existing FIKA traces (not your data/profiles, just the .dll and the server mod) to avoid possible errors.
+* FikOff will search for the `ip.txt` file, will warn you if it doesn't exist, and will automatically proceed to SP
+* If everything goes right, it'll try to uninstall any existing FIKA traces (not your data/profiles, just the .dll and the server mod) to avoid possible errors.
 * It then copies the needed `Fika.Core.dll` and `fika-server` folder from `_fika` into the proper plugin and mod directories.
 * After which, the script will access your launcher's `config.json` file and change your set IP address to the one inside `ip.txt` that you hopefully didn't forget to set up.
 * If multiple MP IPs are detected in the file, FikOff will ask you to choose which one to use.
@@ -75,6 +76,9 @@ literally just drop `fikoff.py` or `fikoff.exe` into your spt folder and make a 
 
 `--ip-index`: will use the IP in the specified index for mp. Is 1-indexed.
  * Will request user input if `--launchmode mp` was provided and `--ip-index` wasn't
+ * 
+`--dry-run`: will run the code without actually executing anything. Included for debug purposes.
+`--log`: allows the `log()` function to work if you set any of them along the code.
 
 # Disclaimers
 FikOff is a steaming hot pile of shit and not a good piece of code *at all*, but it works nice enough and doesn't break.
@@ -84,13 +88,14 @@ If you want to contribute in any way - be it via localizations or coding, be my 
 ### How to contribute:
 Fork this repo, do your thing, make a pull request with the changes and a brief description of what you did, and I'll merge it.
 
-Refer to .json formatting when adding new localizations to lang.json.
+Refer to .json formatting when adding new localizations to lang.json and don't remove the `\n`'s in the strings or else your terminal will be ugly.
 
 ### About AI usage:
 The only times were AI was used in this project were to:
 * Change all of the hardcoded language-specific prints to ones that fetch the correct string from the `lang.json` file (because I am a moron and forgot to do that);
 * Give me a template markdown file that eventually turned into this mess of a 'readme';
-* Translate all of this shit to a language that can be compiled into something that takes no more than a double click to start.
+* Translate all of this shit from python to a language that can be compiled into something that takes no more than a double click to start.
+* Translate strings to languages other than English and *True Portuguese*™ 
 
 ### To-do:
 * ~~Add command-line arguments so playnite users such as myself can just start their game without having to see an ugly terminal~~ Done.
