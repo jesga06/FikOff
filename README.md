@@ -1,5 +1,6 @@
 # FikOff
 A small program that helps you switch between FIKA's coop and standard SPT's single player modes.
+Not to be confused with *FuckOff*.
 
 ## FikOff's functionality
 ### FikOff will:
