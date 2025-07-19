@@ -126,6 +126,14 @@ FikOff is a ~~steaming hot pile of shit~~ chaotic little helper. It’s not perf
 
 If you want to contribute in any way - be it via localizations or coding, be my guest and help a 2nd semester CS student out.
 
+As the SPT hub doesn't allow multiple VirusTotal entries, here are the links for the:
+
+[.py edition (Made with Python)](https://www.virustotal.com/gui/file/1ee18ff02346c41d13f1d9dcc86a997819843e0972f9f31b3409fa21c79564a7/detection)
+
+[.exe edition (Made with C#)](https://www.virustotal.com/gui/file/049648090d5b0a2ee5b13abb8eb822ca121d9c714dd4d72413cda99351f176bd/detection)
+
+This is updated as of `19/07/2025 18:47 GMT-3` (DD/MM/YYYY)
+
 ### How to contribute:
 * Fork this repo
 * Do your thing
