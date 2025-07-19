@@ -1,0 +1,2 @@
+https://127.0.0.1:6969
+remove this text and add your multiplayer servers' IPs here, one by line
