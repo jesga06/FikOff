@@ -4,6 +4,7 @@ A small program that helps you switch between FIKA's coop and standard SPT's sin
 ## FikOff's functionality
 ### FikOff will:
 * Read from `lang.json` to determine how to piss you off in your preferred language.
+* Read command-line arguments if you provided them
 * "Install" FIKA provided you have the files hanging around.
 * "Uninstall" FIKA provided you or the app itself didn't fuck up the install.
 * Detect if you have an `ip.txt` file and act accordingly.
@@ -47,12 +48,11 @@ If `ip.txt` is missing, it defaults to the standard SPT-AKI localhost IP (`https
 ```
 https://127.0.0.1:6969
 https://420.42.69.4:6969
-...other IPs if you're into server hopping that much
+...other IPs if you're that much into server hopping
 ```
 One IP per line and nothing more.
 
 ## Requirements
-
 * SPT Launcher's developer mode should be turned **ON** for FikOff to succesfully change the IP address.
 * Folder structure must be compatible (you need a `_fika` backup folder with the correct mod/plugin structure).
   * The folder above must have the following structure:
@@ -64,11 +64,27 @@ One IP per line and nothing more.
 
 ## Installation
 literally just drop `fikoff.py` or `fikoff.exe` into your spt folder and make a shortcut for it
+## Command-line args:
+`--launchmode`: will launch in the selected mode without the user having to input sp/mp/start
+ * sp
+ * mp
+ * quick
 
-## Disclaimers
+`--setup`: will install and/or uninstall FIKA files depending on `--launchmode`
+ * True if provided, false if not
+
+`--ip-index`: will use the IP in the specified index for mp. Is 1-indexed.
+ * Will request user input if `--launchmode mp` was provided and `--ip-index` wasn't
+
+# Disclaimers
 FikOff is a steaming hot pile of shit and not a good piece of code *at all*, but it works nice enough and doesn't break.
 
-If you want to contribute in any way - be it via localizations or coding, be my guest.
+If you want to contribute in any way - be it via localizations or coding, be my guest and help a 2nd semester CS student out.
+
+### How to contribute:
+Fork this repo, do your thing, make a pull request with the changes and a brief description of what you did, and I'll merge it.
+
+Refer to .json formatting when adding new localizations to lang.json.
 
 ### About AI usage:
 The only times were AI was used in this project were to:
@@ -76,5 +92,8 @@ The only times were AI was used in this project were to:
 * Give me a template markdown file that eventually turned into this mess of a 'readme';
 * Translate all of this shit to a language that can be compiled into something that takes no more than a double click to start.
 
-## Fun fact
+### To-do:
+* ~~Add command-line arguments so playnite users such as myself can just start their game without having to see an ugly terminal~~ Done.
+
+### Fun fact
 The script may make fun of you or curse at you. Especially if you mess up your input. That's just tough love. Enjoy.
