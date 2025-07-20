@@ -6,12 +6,23 @@ import random
 import json
 import argparse
 import sys
-
 class Main:
     def __init__(self):
-        self.args = args
-        self.dry_run = args.dry_run
-        self.log_enabled = args.log
+        self.launchmodes = {
+               'sp': 'sp',
+               'mpc': 'mpc',
+               'mph': 'mph'
+               }
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--launchmode', choices=[mode for mode in self.launchmodes.keys()], help="Launch mode: sp, mph, mpc.")
+        parser.add_argument('--quick', action='store_true', help="Quick launch mode. Will not set up anything.")
+        parser.add_argument('--setup', action='store_true', help="Executes the setup routine (Installs/Uninstalls FIKA).")
+        parser.add_argument('--ip-index', type=int, help="Sets the index of the MP IP (from the ip.txt file, 1-indexed), bypassing user input.")
+        parser.add_argument('--dry-run', action='store_true', help="Doesn't open anything if true.")
+        parser.add_argument('--log', action='store_true', help="Activates logging.") # useful for contributors
+        self.args = parser.parse_args()
+        self.dry_run = self.args.dry_run
+        self.log_enabled = self.args.log
         self.logs = []
         # codeblock that tries to open the lang file
         lang_path = os.path.join(os.path.dirname(__file__), "lang.json")
@@ -47,30 +58,33 @@ class Main:
             "server": self.currentDir + "\\SPT.Server.exe",
             "ip_file": self.currentDir + "\\ip.txt" # double backslashes were used because tarkov doesn't run on linux AFAIK
         }
-        # gets the IPs from the files if --launchmode isnt quick
-        if self.args.launchmode != 'quick':
-            if os.path.exists(self.paths["ip_file"]):
-                self.ipFileExists = True
-                self.singleplayer_ip = ""
-                self.multiplayer_ips = []
-                try:
-                    with open(self.paths["ip_file"], 'r') as file:
-                        iplist = [ip.strip() for ip in file.readlines() if ip.strip()]
-                        if iplist:
-                            print(self.strings["ip_found"])
-                            self.singleplayer_ip = iplist[0]
-                            self.multiplayer_ips = iplist[1:]
-                        else:
-                            print(self.strings["ip_not_found"])
-                except Exception:
-                    print(self.strings["file_error"])
-            else:
-                print(self.strings["ip_not_found"])
-                self.ipFileExists = False
+        if os.path.exists(self.paths["ip_file"]):
+            self.ipFileExists = True
+            self.singleplayer_ip = ""
+            self.multiplayer_ips = []
+            try:
+                self.get_ips()
+            except Exception:
+                print(self.strings["file_error"])
                 self.singleplayer_ip = "https://127.0.0.1:6969"
                 self.multiplayer_ips = []
         else:
+            print(self.strings["ip_not_found"])
+            self.ipFileExists = False
             self.singleplayer_ip = "https://127.0.0.1:6969"
+            self.multiplayer_ips = []
+
+    def get_ips(self):
+        with open(self.paths["ip_file"], 'r', encoding='utf-8') as file:
+            iplist = [ip.strip() for ip in file.readlines() if ip.strip()]
+            if iplist:
+                print(self.strings["ip_found"])
+                self.singleplayer_ip = iplist[0]
+                self.multiplayer_ips = iplist[1:]
+            else:
+                print(self.strings["ip_not_found"])
+                self.singleplayer_ip = "https://127.0.0.1:6969"
+                self.multiplayer_ips = []
 
     def log(self, msg):
         if self.log_enabled:
@@ -89,6 +103,7 @@ class Main:
             else:
                 value = input(self.strings[f"{prompt}"]).upper()
         return value
+                    
 
     def show_end_message(self):
         print(self.endmsg[self.rng[2]], "\n" + self.strings["thanks"])
@@ -109,22 +124,35 @@ class Main:
                 else:
                     file.write(line)
 
-    def launchSequence(self, type):
+    def launchSequence(self, type, quick=None):
         """Calls launcher_ip() with the same type argument and starts only the launcher or the server and launcher depending on the type passed.\n
         Defaults to 'sp'."""
-        if type == 'quick':
+        type = type.lower() # can never be too paranoid
+        if quick:
             if not self.dry_run:
-                os.startfile(self.paths["server"])
-                subprocess.Popen(["cmd", "/c", "start", "", self.paths["launcher"]], shell=True, cwd=self.currentDir)
-            return
+                if type in ['sp', 'mph']:
+                    os.startfile(self.paths["server"])
+                    subprocess.Popen(["cmd", "/c", "start", "", self.paths["launcher"]], shell=True, cwd=self.currentDir)
+                else: #if type == mpc aka "i will not need the server please just start the game already i wanna die to Tagilla"
+                    subprocess.Popen(["cmd", "/c", "start", "", self.paths["launcher"]], shell=True, cwd=self.currentDir)
+            return # ends early in case of --launchmode quick
         print() # newline to make the code more bearable to read
         self.launcher_ip(type)
-        if type == 'sp':
+        if type == 'mph':
+            if not self.dry_run:
+                self.copy()
             print(self.strings["starting_server"])
             print(self.svmsg[self.rng[0]])
             if not self.dry_run:
                 os.startfile(self.paths["server"])
                 time.sleep(10)
+        elif type == 'mpc':
+            if not self.dry_run:
+                self.copy()
+        else: # is sp
+            if not self.dry_run:
+                self.removeFika()
+                os.startfile(self.paths["server"])
         print(self.strings["starting_launcher"])
         print(self.lmsg[self.rng[1]])
         if not self.dry_run:
@@ -139,20 +167,20 @@ class Main:
             return
 
         target_ip = self.singleplayer_ip if type == "sp" else None
-        # i honestly have no idea what the fuck this codeblock does
-        # i was 20% awake when i wrote this
-        if type == "mp":
-            if self.args.ip_index is not None:
+        # the curses that past me have bestowed upon myself have been lifted
+        # i now have been enlightened by my own mistakes and have understood once again what dark algorithms the below codeblock executes.
+        if type in ['mph', 'mpc']:
+            if self.args.ip_index is not None: # checks for the --ip-index arg
                 try:
-                    selected_index = self.args.ip_index - 1
-                    if 0 <= selected_index < len(self.multiplayer_ips):
+                    selected_index = self.args.ip_index - 1 # --ip-index is 1-indexed, python lists are 0-indexed
+                    if 0 <= selected_index < len(self.multiplayer_ips): # checks if the index is within range
                         target_ip = self.multiplayer_ips[selected_index]
-                        print(self.strings["ip_selected"].format(num=self.args.ip_index, ip=target_ip), "\n")
+                        print(self.strings["ip_selected"].format(num=self.args.ip_index, ip=target_ip), "\n") # i should've programmed this to just tell the user to FikOff™
                         time.sleep(1)
                     else:
                         print(self.strings["invalid_ip_index"], "\n" + self.strings["index_range"].format(range=len(self.multiplayer_ips)), "\n" + self.strings["ip_missing_ext"])
                         time.sleep(1)
-                except:
+                except: # i dont think this ever gets executed tbh
                     print(self.strings["index_missing"], "\n")
                     time.sleep(1)
             elif len(self.multiplayer_ips) == 1:
@@ -201,72 +229,64 @@ class Main:
         time.sleep(1)
 
     def removeFika(self, silent=False): # same as above
-        if not silent:
-            print("\n", self.strings["uninstalling_fika"])
-        if not self.dry_run:
-            os.remove(self.paths["pluginFikaIns"])
-            sh.rmtree(self.paths["modFikaIns"])
-        time.sleep(1)
-        if not silent:
-            print(self.strings["uninstall_success"], "\n")
+        try:
+            if not silent:
+                print(self.strings["uninstalling_fika"])
+            if not self.dry_run:
+                os.remove(self.paths["pluginFikaIns"])
+                sh.rmtree(self.paths["modFikaIns"])
+            time.sleep(1)
+            if not silent:
+                print(self.strings["uninstall_success"], "\n")
+        except:
+            pass
         time.sleep(1)
 
     def start(self):
-        mode = self.input_prompt("start_prompt", ['SP', 'MP', 'START'], "retry_start_prompt")
-        if mode == 'START':
+        time.sleep(1)
+        print() # newline
+        print(self.strings["help_start_prompt"])
+        time.sleep(1.5)
+        mode = self.input_prompt("start_prompt", ['SP', 'MPH', 'MPC', 'QSP', 'QMPH', 'QMPC'], "retry_start_prompt")
+        if mode.startswith('Q'):
             print(self.strings["start_quick"])
-            self.launchSequence('quick')
-        elif mode == 'MP':
-            if self.ipFileExists:
-                self.copy()
-                start = self.input_prompt("auto_start_prompt", ['Y', 'N'])
-                if start == 'Y':
-                    self.launchSequence('mp')
-                self.show_end_message()
-            else:
-                print(self.strings["ip_missing"])
-                print(self.strings["ip_missing_ext"])
-                self.launchSequence('sp')
-                time.sleep(1)
-        elif mode == 'SP':
-            try:
-                self.removeFika()
-            except:
-                pass
-            start = self.input_prompt("auto_start_prompt", ['Y', 'N'])
-            if start == 'Y':
-                self.launchSequence('sp')
+            self.launchSequence(mode[1:].lower(), quick=True)
+        else:
+            self.launchSequence(mode.lower())
             self.show_end_message()
+
+main = Main()
 
 # argument parsing
 parser = argparse.ArgumentParser()
-parser.add_argument('--launchmode', choices=['sp', 'mp', 'quick'], help="Launch mode: sp, mp or quick.")
+parser.add_argument('--launchmode', choices=[mode for mode in main.launchmodes.keys()], help="Launch mode: sp, mph, mpc.")
+parser.add_argument('--quick', action='store_true', help="Quick launch mode. Will not set up anything.")
 parser.add_argument('--setup', action='store_true', help="Executes the setup routine (Installs/Uninstalls FIKA).")
 parser.add_argument('--ip-index', type=int, help="Sets the index of the MP IP (from the ip.txt file, 1-indexed), bypassing user input.")
 parser.add_argument('--dry-run', action='store_true', help="Doesn't open anything if true.")
 parser.add_argument('--log', action='store_true', help="Activates logging.") # useful for contributors
 args = parser.parse_args()
 
-main = Main()
-
-if args.launchmode:
-    if args.launchmode == 'quick':
-        main.launchSequence('quick')
-    elif args.launchmode == 'sp':
+if args.launchmode in main.launchmodes:
+    if args.launchmode == 'sp':
         if args.setup:
             try:
                 main.removeFika(silent=True)
-            except FileNotFoundError:
-                pass
-        main.launchSequence('sp')
-    elif args.launchmode == 'mp':
+            except Exception as error:
+                if not args.quick:
+                    print(main.strings["uninstall_fail"] + f"\nError: {error}")
+    elif args.launchmode in ['mpc', 'mph']:
         if args.setup:
-            main.copy()
-        main.launchSequence('mp')
+            try:
+                main.copy()
+            except Exception as error:
+                if not args.quick:
+                    print(main.strings["install_fail"] + f"\nError: {error}")
+    main.launchSequence(main.launchmodes[args.launchmode], quick=args.quick)
 else:
     try:
         main.start()
     except KeyError as e:
         # defaults to english because im pretty sure most of the people using this also speak english
-        print("Caught a KeyError. Maybe you forgot to download the lang.json file or deleted something by accident?\n" \
+        print("Caught a KeyError. Maybe you forgot to extract the lang.json file or deleted something by accident?\n" \
         f"Missing key: {e}")
