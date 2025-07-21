@@ -134,7 +134,7 @@ class Main:
 
     def try_connection(self, parsed_url):
         """
-        Checks for server status every 5 seconds for 60 seconds.\n
+        Checks for server status every 5 seconds for 420 seconds.\n
         Uses cSA() for each try
         """
         interval = 5.0
@@ -218,9 +218,9 @@ class Main:
             if not self.dry_run:
                 self.copy()
         elif type == 'sp':
-            self.log("perform_setup() - calling removeFika() for SP.")
+            self.log("perform_setup() - calling remove_fika() for SP.")
             if not self.dry_run:
-                self.removeFika()
+                self.remove_fika()
 
     def start_processes(self, type):
         # this function now ONLY handles starting the processes and waiting for the server.
@@ -326,10 +326,10 @@ class Main:
         self.log("copy() - called")
         print(self.strings["deleting_files"])
         try:
-            self.log("copy() - calling removeFika() silently")
-            self.removeFika(silent=True)
+            self.log("copy() - calling remove_fika() silently")
+            self.remove_fika(silent=True)
         except Exception as error:
-            self.log(f"copy() - error during silent removeFika: {error}")
+            self.log(f"copy() - error during silent remove_fika: {error}")
             pass
         print(self.strings["residues_removed"])
         time.sleep(.5)
@@ -345,24 +345,24 @@ class Main:
             print(self.strings["install_fail"] + f"\nError: {erro}")
         time.sleep(1)
 
-    def removeFika(self, silent=False): # same as above
-        self.log(f"removeFika() - called (silent={silent})")
+    def remove_fika(self, silent=False): # same as above
+        self.log(f"remove_fika() - called (silent={silent})")
         try:
             if not silent:
                 print(self.strings["uninstalling_fika"])
             if not self.dry_run:
-                self.log("removeFika() - dry-run is false, removing files")
+                self.log("remove_fika() - dry-run is false, removing files")
                 if os.path.exists(self.paths["pluginFikaIns"]):
                     os.remove(self.paths["pluginFikaIns"])
-                    self.log("removeFika() - removed plugin file.")
+                    self.log("remove_fika() - removed plugin file.")
                 if os.path.exists(self.paths["modFikaIns"]):
                     sh.rmtree(self.paths["modFikaIns"])
-                    self.log("removeFika() - removed mod directory.")
+                    self.log("remove_fika() - removed mod directory.")
             time.sleep(1)
             if not silent:
                 print(self.strings["uninstall_success"], "\n")
         except Exception as error:
-            self.log(f"removeFika() - error: {error}")
+            self.log(f"remove_fika() - error: {error}")
             if not silent:
                 print(self.strings["uninstall_fail"])
             return error
@@ -426,7 +426,7 @@ if main.args.launchmode is not None:
 
 else:
     # interactive mode (no --launchmode argument was provided).
-    main.log("No --launchmode provided. Defaulting to interactive mode.")
+    main.log("no --launchmode provided. Defaulting to interactive mode.")
     try:
         main.start()
     except ValueError as error:
