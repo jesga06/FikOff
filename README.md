@@ -78,19 +78,6 @@ https://420.42.69.4:6969
 ```
 
 One IP per line and nothing more.
-## Folder Structure
-Your SPT install should look like this, apart from the standard SPT files:
-
-```
-SPT Root/
-├── FikOffCS.exe
-├── FikOff.py
-├── lang.json
-├── ip.txt
-├── _fika/
-│   ├── BepInEx/plugins/Fika.Core.dll
-│   └── user/mods/fika-server/
-```
 
 ## Requirements
   * [.NET Desktop Runtime 8.0 (x64)](https://dotnet.microsoft.com/download/dotnet) or later (for `FikOffCS.exe`)
@@ -111,7 +98,7 @@ SPT Root/
 - `ip.txt`
 Set up a shortcut if you want to use CLAP without using Steam, Playnite, or other game managers.
 
-## Command-line args
+## CLAP args
 
 | Argument (.py) | Equivalent (.bat) | Description |
 | :--- | :--- | :--- |
