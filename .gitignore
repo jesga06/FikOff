@@ -1,8 +1,9 @@
 [Bb]in/
 [Oo]bj/
 [Pp]ublish/
-.vs/
-.vscode/
-# the repo has a sample ip.txt file, but I think it'll avoid some costly mistakes if I just leave this here
-ip.txt
 FikOffCS.slnx
+.vscode/launch.json
+.vscode/settings.json
+long.json
+ip.txt
+fikoffold.py
