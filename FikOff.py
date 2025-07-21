@@ -56,15 +56,16 @@ class Main:
 
         self.currentDir = os.path.dirname(__file__)
         self.paths = {
-            "pluginFikaUnins": self.currentDir + "\\_fika\\BepInEx\\plugins\\Fika.Core.dll",
-            "pluginFikaIns": self.currentDir + "\\BepInEx\\plugins\\Fika.Core.dll",
-            "modFikaUnins": self.currentDir + "\\_fika\\user\\mods\\fika-server",
-            "modFikaIns": self.currentDir + "\\user\\mods\\fika-server",
-            "config": self.currentDir + "\\user\\launcher\\config.json",
-            "launcher": self.currentDir + "\\SPT.Launcher.exe",
-            "server": self.currentDir + "\\SPT.Server.exe",
-            "ip_file": self.currentDir + "\\ip.txt" # double backslashes were used because tarkov doesn't run on linux AFAIK
-        }
+            "pluginFikaUnins": os.path.join(self.currentDir, "_fika", "BepInEx", "plugins", "Fika.Core.dll"),
+            "pluginFikaIns": os.path.join(self.currentDir, "BepInEx", "plugins", "Fika.Core.dll"),
+            "modFikaUnins": os.path.join(self.currentDir, "_fika", "user", "mods", "fika-server"),
+            "modFikaIns": os.path.join(self.currentDir, "user", "mods", "fika-server"),
+            "config": os.path.join(self.currentDir, "user", "launcher", "config.json"),
+            "launcher": os.path.join(self.currentDir, "SPT.Launcher.exe"),
+            "server": os.path.join(self.currentDir, "SPT.Server.exe"),
+            "ip_file": os.path.join(self.currentDir, "ip.txt")
+            }
+
         self.svip = None # init as None
         if os.path.exists(self.paths["ip_file"]):
             self.log("ip.txt found")
@@ -76,7 +77,7 @@ class Main:
                 self.get_ips()
             except Exception as error:
                 self.log(f"ip.txt error: {error}")
-                print(self.strings["file_error"])
+                print(self.strings["file_error"].format(error=error))
                 self.singleplayer_ip = "https://127.0.0.1:6969"
                 self.multiplayer_ips = []
         else:
@@ -113,24 +114,21 @@ class Main:
         """
         self.log(f"cSA() - attempting to connect to {ip}:{port} with timeout {timeout_attempt}s")
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(timeout_attempt)
-            result = sock.connect_ex((ip, port))
-            if result == 0:
-                self.log(f"cSA() -successfully connected to {ip}:{port}")
-                return True
-            else:
-                self.log(f"cSA() - failed to connect to {ip}:{port} - Error code: {result}")
-                return False
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.settimeout(timeout_attempt)
+                result = sock.connect_ex((ip, port))
+                if result == 0:
+                    self.log(f"cSA() - successfully connected to {ip}:{port}")
+                    return True
+                else:
+                    self.log(f"cSA() - failed to connect to {ip}:{port} - error code: {result}")
+                    return False
         except socket.timeout:
             self.log(f"cSA() - connection to {ip}:{port} timed out after {timeout_attempt}s.")
             return False
         except Exception as error:
             self.log(f"cSA() - an error occurred while checking {ip}:{port} - {error}")
             return False
-        finally:
-                if 'sock' in locals() and sock:
-                    sock.close()
 
     def try_connection(self, parsed_url):
         """
@@ -168,6 +166,8 @@ class Main:
         self.log(f"input_prompt() - called with prompt '{prompt}'")
         value = input(self.strings[f"{prompt}"]).upper()
         while value not in valid:
+            if value in ['Q', 'QUIT', 'EXIT', 'KILL']:
+                sys.exit()
             self.log(f"input_prompt() - invalid input '{value}'")
             print(self.strings[f"error_{prompt}"], "\n")
             time.sleep(1)
@@ -189,26 +189,26 @@ class Main:
 
     def write_config_ip(self, ip=str): # reason of creation is analogue to input_prompt()
         self.log(f"write_config_ip() - called with ip='{ip}'")
-        with open(self.paths["config"], "r", encoding="utf-8") as file:
-            self.log("write_config_ip() - reading config")
-            lines = file.readlines()
-        with open(self.paths["config"], "w", encoding="utf-8") as file:
-            self.log("write_config_ip() - writing config")
-            for line in lines:
-                if '"Url":' in line:
-                    self.log("write_config_ip() - found 'Url' line. writing IP")
-                    pieces = line.split(":", 1)
-                    key = pieces[0]
-                    new_line = f'{key}: "{ip}"\n'
-                    file.write(new_line)
-                elif '"IsDevMode"' in line:
-                    self.log("write_config_ip() - found 'IsDevMode' line. writing 'true,'")
-                    pieces = line.split(":", 1)
-                    key = pieces[0]
-                    new_line = f'{key}: true,\n'
-                    file.write(new_line)
-                else:
-                    file.write(line)
+        config_path = self.paths["config"]
+        try:
+            with open(config_path, "r", encoding="utf-8") as file:
+                self.log("write_config_ip() - reading and parsing config.json")
+                data = json.load(file)
+
+            self.log("write_config_ip() - modifying data in memory")
+            data["Url"] = ip
+            data["IsDevMode"] = True
+
+            with open(config_path, "w", encoding="utf-8") as file:
+                self.log("write_config_ip() - writing modified data back to config.json")
+                json.dump(data, file, indent=4) # keeping indent
+
+        except FileNotFoundError:
+            self.log(f"write_config_ip() - config file not found at {config_path}")
+            print(self.strings["config_not_found"].format(path=config_path))
+        except (KeyError, json.JSONDecodeError) as e:
+            self.log(f"write_config_ip() - error processing JSON file: {e}")
+            print(self.strings["config_key_error"].format(error=e))
 
     def perform_setup(self, type):
         # this function now ONLY handles the setup routine (copying/removing mods).
@@ -283,8 +283,8 @@ class Main:
                     print(self.strings["index_missing"])
             elif len(self.multiplayer_ips) == 0:
                 self.log("launcher_ip() - no MP IPs found, defaulting to SP IP")
-                print(self.strings["ip_missing_ext"])
                 target_ip = self.singleplayer_ip
+                print(self.strings["ip_missing_ext"].format(ip=target_ip))
             elif len(self.multiplayer_ips) == 1:
                 self.log("launcher_ip() - only one MP IP found, selecting it automatically")
                 target_ip = self.multiplayer_ips[0]
@@ -305,7 +305,7 @@ class Main:
                             time.sleep(0.5)
                             break
                         else:
-                            print(self.strings["error_select_ip_index"])
+                            print(self.strings["error_select_ip_index"].format(range=len(self.multiplayer_ips)))
                             time.sleep(2)
                             print() # newline
                     except ValueError:
@@ -328,7 +328,7 @@ class Main:
         try:
             self.log("copy() - calling remove_fika() silently")
             self.remove_fika(silent=True)
-        except Exception as error:
+        except (IOError, OSError, sh.Error) as error:
             self.log(f"copy() - error during silent remove_fika: {error}")
             pass
         print(self.strings["residues_removed"])
@@ -340,9 +340,9 @@ class Main:
                 sh.copytree(self.paths["modFikaUnins"], self.paths["modFikaIns"])
                 sh.copy(self.paths["pluginFikaUnins"], self.paths["pluginFikaIns"])
             print(self.strings["install_success"], "\n")
-        except Exception as erro:
-            self.log(f"copy() - error during copytree/copy: {erro}")
-            print(self.strings["install_fail"] + f"\nError: {erro}")
+        except (IOError, OSError, sh.Error) as error:
+            self.log(f"copy() - error during copytree/copy: {error}")
+            print(self.strings["install_fail"].format(error=error))
         time.sleep(1)
 
     def remove_fika(self, silent=False): # same as above
@@ -361,10 +361,10 @@ class Main:
             time.sleep(1)
             if not silent:
                 print(self.strings["uninstall_success"], "\n")
-        except Exception as error:
+        except (IOError, OSError, sh.Error) as error:
             self.log(f"remove_fika() - error: {error}")
             if not silent:
-                print(self.strings["uninstall_fail"])
+                print(self.strings["uninstall_fail"].format(error=error))
             return error
         time.sleep(1)
 
@@ -411,12 +411,18 @@ if main.args.launchmode is not None:
         # this is so try_connection() doesn't hang trying to connect to the wrong address
         ip_to_parse = main.singleplayer_ip
         if mode in ['mph', 'mpc'] and main.multiplayer_ips:
-            index = (main.args.ip_index - 1) if main.args.ip_index is not None and 0 <= (main.args.ip_index - 1) < len(main.multiplayer_ips) else 0
-            ip_to_parse = main.multiplayer_ips[index]
+            ip_to_parse = main.multiplayer_ips[0] # defaults to the first one
+            if main.args.ip_index is not None:
+                if 0 <= (main.args.ip_index - 1) < len(main.multiplayer_ips): # checks if index is valid
+                    ip_to_parse = main.multiplayer_ips[main.args.ip_index - 1]
+                else:
+                    main.log(f"quick mode: --ip-index {main.args.ip_index} is out of range. falling back to first IP.")
+                    print(main.strings["invalid_ip_index"])
+                    print(main.strings["invalid_ip_index_fallback"].format(ip=ip_to_parse))
         main.svip = urlparse(ip_to_parse)
         main.log(f"quick mode: svip set to {main.svip}")
 
-    # calls perform setup if --setup is present and --quick isnt
+    # calls perform_setup() if --setup is present and --quick isnt
     if main.args.setup and not main.args.quick:
         main.log("--setup flag detected.")
         main.perform_setup(mode)
@@ -437,3 +443,5 @@ else:
         print(f"Error loading configuration: {error}")
     except Exception as error:
         main.log(f"something went to shit in interactive mode: {error}")
+        print(main.strings["mystical_error"].format(error=error))
+        input(main.strings["press_enter"]) 

@@ -1,8 +1,6 @@
 # FikOff
 
-A small multi-language* program that helps you switch between FIKA's coop and standard SPT's single player modes.
-
-Not to be confused with *FuckOff*
+A small multi-language* program that helps you switch between FIKA's coop and standard SPT's single player modes. Not to be confused with *FuckOff*.
 
 *ported from Python to other langs
 
@@ -10,19 +8,24 @@ Not to be confused with *FuckOff*
 
 ### FikOff will
 
-  * Turn on developer mode in the Launcher automatically.
-  * Read from `lang.json` to determine how to piss you off in your preferred language.
+  * Turn on developer mode in the Launcher automatically.*
+  * Read from `lang.json` to determine how to piss you off in your preferred language.*
   * Read command-line arguments if you provided them.
   * "Install" FIKA provided you have the files hanging around.
   * "Uninstall" FIKA provided you or the app itself didn't fuck up the install.
     * Will only uninstall the plugin and the server mod. Your profiles and configurations are safe.
   * Detect if you have an `ip.txt` file and act accordingly.
   * Configure your Launcher to connect to the correct IP depending on your chosen mode.
+  * Wait until the server is up and running before starting the Launcher.*
+  * Tell you what went wrong if something does, in fact, go wrong.*
+
+*Not available on all editions
 
 ### FikOff will not
 
   * Automatically and correctly setup FIKA if you haven't already.
   * Download necessary FIKA files for you.
+  * Clutter your background with terminal windows if you don't want it to.
   * Make you a cup of coffee in the morning, say "I love you baby" when you wake up, and hug you when you feel sad...
 
 ## Mode switching
@@ -49,7 +52,7 @@ Not to be confused with *FuckOff*
       * **SP & MPH modes:** It starts the server, actively waits for it to come online (checking every 7 seconds for up to 420 seconds), and then starts the launcher.
         * FikOff knows you have a hoarding issue regarding server mods. That's why.
       * **MPC mode:** It only starts the launcher, since the server is hosted by someone else.
-  * If you say `N`, the script finishes and you can launch everything manually if your heart desires.
+  * If you say `N` or `FIKOFF`, the script finishes and you can launch everything manually if your heart desires.
 
 **CLAP Mode (using `--launchmode`):** - **C**ommand-**L**ine **A**uto **P**ilot Mode
 
@@ -66,8 +69,10 @@ FikOff will:
   * Use the **first line** as the IP for singleplayer.
   * The **second and all subsequent lines** are treated as possible IPs for multiplayer.
   * If only one multiplayer IP is found (i.e., the file has only two lines), it will be selected automatically. If multiple multiplayer IPs are found, FikOff will ask you to choose which one to use **in both** interactive and CLAP modes.
+    * If the index you provided via `--ip-index` is out of range, FikOff will automatically fall back to other IPs, with the following priority:
+    * First MP IP in ip.txt > First IP in ip.txt > localhost (`https://127.0.0.1:6969`)
 
-If `ip.txt` is missing, it defaults to standard localhost IP (`https://127.0.0.1:6969`).
+If `ip.txt` is missing, it defaults to standard SPT localhost IP (`https://127.0.0.1:6969`).
 
 **The file structure should be as follows:**
 
@@ -107,7 +112,7 @@ Set up a shortcut if you want to use CLAP without using Steam, Playnite, or othe
 | `--quick` | `/quick` | Will skip every setup and will not change IPs. Has priority over `--setup` if both are provided. |
 | `--ip-index` | just a lone number, like `2` | Will use the IP in the specified index for mp. Is 1-indexed. Will request user input if `--launchmode mp` was provided and `--ip-index` wasn't |
 | `--dry-run` | Not available | Will run the code without actually executing anything. Included for debug purposes. |
-| `--log` | Not available | Allows the `log()` function to work if you set any of them along the code.Both of the args above do not exist in the **.bat** edition because I prefer to keep my sanity. |
+| `--log` | Not available | Allows the `log()` function to work if you set any of them along the code.|
 * ``--launchmode`` **values**:
   * `sp` / Singleplayer
   * `mpc` / Multiplayer Client
@@ -125,19 +130,22 @@ FikOff.bat /mph 1 /setup      - note: this must be in this exact order. ip-index
 # Troubleshooting
 
 ❓ **FikOff doesn't work**  
-- Check if your paths are correct  
-- Make sure your antivirus didn’t block it  
+- Check if your paths are correct
+- Make sure your antivirus didn’t block it
 
 ❓ **IP doesn't update in the launcher**  
-- Enable **developer mode** in the SPT Launcher  
+- Make sure that config.json isn't read-only.
+
+❓ **FikOff is telling me that a mystical error has occoured**  
+- Post a screenshot over on [issues](https://github.com/jesga06/FikOff/issues) with a brief description about what you were trying to do. 
 
 ❓ **FikOff is telling me to, well, "FikOff™":**
 - Congratulations. You probably mistyped a basic CLI option.
 
 # Disclaimers
 
-FikOff aims to be a straightforward tool that works reliably. While it may not win any coding awards, it has been refactored since its conception to be less of a *"steaming hot pile of shit"* and is now much easier to understand and maintain.
-
+FikOff was, in it's conception, just a small Python challenge I gave to myself with the objective of making me learn what classes are. But now, it has evolved into this monstrosity that aims to be a straightforward AIO tool that works reliably.
+While it may not win any coding awards, it has been refactored since its conception to be less of a *"steaming hot pile of shit"* and is now much easier to understand and maintain.
 
 I aim to keep most functionality I can when porting FikOff to other programming languages, but due to different *capabilities* and *constraints*, I unfortunately cannot port *everything*. Below is a list mentioning what each version of FikOff **has and doesn't have**.
 
@@ -146,8 +154,8 @@ I aim to keep most functionality I can when porting FikOff to other programming 
 * C#
   * Apart from a few sleep() calls in the Interactive Mode that were added to try and keep the output readable, the C# edition of FikOff also has everything.
 * Batch. Here is where things get messy.
-  * Has: CLAP args, auto server and launcher start, auto setup (IP setup included), the ability to run on a fresh Windows install.
-  * Hasn't: Checks to see if the server is actually online before starting the launcher, **automatically turning** developer mode in the launcher to on, support for multiple languages, funny flavor texts (this one's the saddest out of these tbh).
+  * Has: CLAP args (but they're used differently), auto server and launcher start, auto setup (IP setup included), the ability to run on a fresh Windows install.
+  * Hasn't: Checks to see if the server is actually online before starting the launcher, **automatically turning** developer mode in the launcher to on, support for multiple languages, logging, proper exception handling, funny flavor texts (this one's the saddest out of these tbh).
 
 ### How to contribute
 
@@ -171,7 +179,7 @@ The only times were AI was used in this project were to:
 
   * ~~Add command-line arguments so playnite users such as myself can just start their game without having to see an ugly terminal~~ Done.
   * Port this to other languages so y'all can pick your poison
-    * Currently ported to: C#, Batch, and Python (OG code was made in Python). 
+    * Currently ported to: C#, Batch, and Python (OG code was made in Python). I'm probably porting it over to PowerShell next.
     * Of these, AI was only used to port the code from Python to: C#
 
 ### Fun fact
