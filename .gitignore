@@ -1,3 +1,14 @@
+<<<<<<< HEAD
+[Bb]in/
+[Oo]bj/
+[Pp]ublish/
+FikOffCS.slnx
+.vscode/launch.json
+.vscode/settings.json
+long.json
+ip.txt
+fikoffold.py
+=======
 # ignore everything by default
 *
 !.gitignore
@@ -8,3 +19,4 @@
 !FikOffCS/FikOffCS.csproj
 !FikOffCS/Program.cs
 FikOffCS/*
+>>>>>>> origin/main
