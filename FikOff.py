@@ -211,7 +211,7 @@ class Main:
                     file.write(line)
 
     def perform_setup(self, type):
-        # New comment: This function now ONLY handles the setup routine (copying/removing mods).
+        # this function now ONLY handles the setup routine (copying/removing mods).
         self.log(f"perform_setup() - called for type '{type}'")
         if type in ['mph', 'mpc']:
             self.log("perform_setup() - calling copy() for MP.")
