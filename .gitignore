@@ -1,0 +1,10 @@
+# ignore everything by default
+*
+!.gitignore
+!FikOff.py
+!lang.json
+!README.md
+!FikOffCS/
+!FikOffCS/FikOffCS.csproj
+!FikOffCS/Program.cs
+FikOffCS/*
