@@ -98,7 +98,7 @@ One IP per line and nothing more.
 - `ip.txt`
 Set up a shortcut if you want to use CLAP without using Steam, Playnite, or other game managers.
 
-## Command-line args
+## CLAP args
 
 | Argument (.py) | Equivalent (.bat) | Description |
 | :--- | :--- | :--- |
