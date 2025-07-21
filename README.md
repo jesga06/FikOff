@@ -94,7 +94,6 @@ One IP per line and nothing more.
       * `/_fika/user/mods/fika-server`
       * basically, just extract the necessary FIKA files to `_fika` and call it a day
   * `ip.txt` must exist for multiplayer to work. Without it, you get SP only.
-  * Your SPT install must use `SPT.Server.exe`, `SPT.Launcher.exe`, and the typical AKI layout.
 
 ## Installation
 
