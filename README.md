@@ -100,23 +100,18 @@ Set up a shortcut if you want to use CLAP without using Steam, Playnite, or othe
 
 ## Command-line args
 
-* `--launchmode`: will launch in the selected mode without the user having to input sp/mph/mpc. It also automatically sets up IPs if `--quick` isn't provided.
-  * Is defined as `/mode` on .bat
-  * ``sp`` / Singleplayer
-  * ``mpc`` / Multiplayer Client
-  * ``mph`` / Multiplayer Host
-* `--setup`: will install and/or uninstall FIKA files depending on `--launchmode`.
-  * True if provided, false if not.
-  * `/setup` on .bat
-* `--quick`: will skip every setup and will not change IPs.
-  * Has priority over `--setup` if both are provided.
-  * `/quick` on .bat
-* `--ip-index`: will use the IP in the specified index for mp. Is 1-indexed.
-  * Will request user input if `--launchmode mp` was provided and `--ip-index` wasn't
-  * Is defined as just a lone number on .bat
-* `--dry-run`: will run the code without actually executing anything. Included for debug purposes.
-* `--log`: allows the `log()` function to work if you set any of them along the code.
-  * Both of the args above do not exist in the **.bat** edition because I prefer to keep my sanity.
+| Argument (.py) | Equivalent (.bat) | Description |
+| :--- | :--- | :--- |
+| `--launchmode` | `/mode` | Will launch the app in CLAP mode. Automatically sets up IPs if `--quick` isn't provided.|
+| `--setup` | `/setup` | Will install and/or uninstall FIKA files depending on `--launchmode`. True if provided, false if not. |
+| `--quick` | `/quick` | Will skip every setup and will not change IPs. Has priority over `--setup` if both are provided. |
+| `--ip-index` | just a lone number, like `2` | Will use the IP in the specified index for mp. Is 1-indexed. Will request user input if `--launchmode mp` was provided and `--ip-index` wasn't |
+| `--dry-run` | Not available | Will run the code without actually executing anything. Included for debug purposes. |
+| `--log` | Not available | Allows the `log()` function to work if you set any of them along the code.Both of the args above do not exist in the **.bat** edition because I prefer to keep my sanity. |
+* ``--launchmode`` **values**:
+  * `sp` / Singleplayer
+  * `mpc` / Multiplayer Client
+  * `mph` / Multiplayer Host
 
 ### Examples
 
