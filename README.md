@@ -53,6 +53,7 @@ A small multi-language* program that helps you switch between FIKA's coop and st
         * FikOff knows you have a hoarding issue regarding server mods. That's why.
       * **MPC mode:** It only starts the launcher, since the server is hosted by someone else.
   * If you say `N` or `FIKOFF`, the script finishes and you can launch everything manually if your heart desires.
+  * If you type `Q`,`QUIT`,`EXIT`, or `KILL` when being prompted, the script just closes.
 
 **CLAP Mode (using `--launchmode`):** - **C**ommand-**L**ine **A**uto **P**ilot Mode
 
@@ -154,8 +155,8 @@ I aim to keep most functionality I can when porting FikOff to other programming 
 * C#
   * Apart from a few sleep() calls in the Interactive Mode that were added to try and keep the output readable, the C# edition of FikOff also has everything.
 * Batch. Here is where things get messy.
-  * Has: CLAP args (but they're used differently), auto server and launcher start, auto setup (IP setup included), the ability to run on a fresh Windows install.
-  * Hasn't: Checks to see if the server is actually online before starting the launcher, **automatically turning** developer mode in the launcher to on, support for multiple languages, logging, proper exception handling, funny flavor texts (this one's the saddest out of these tbh).
+  * Has: Some CLAP args (but they're used differently), auto server and launcher start, auto setup (IP and dev mode setup included), the ability to run on a fresh Windows install (not like that's a big selling point).
+  * Hasn't: Checks to see if the server is actually online before starting the launcher, support for multiple languages, logging, proper exception handling, funny flavor texts (this one's the saddest out of these tbh).
 
 ### How to contribute
 

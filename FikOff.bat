@@ -24,7 +24,8 @@ goto :eof
     echo    QUICK MODES (No file/IP setup):
     echo    QSP, QMPH, QMPC
     echo.
-    set /p "choice=Gonna squad up, go solo, or just wanna launch the damn game? (SP/MPC/MPH/QSP/QMPH/QMPC): "
+    set /p "choice=Gonna squad up, go solo, or just wanna launch the damn game? (Q to Quit): "
+    if /I "%choice%"=="Q" goto :eof
 
     :: i found this on stackoverflow
     for %%i in (A B C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
@@ -137,7 +138,8 @@ goto :eof
 
 :ask_to_start
     echo.
-    set /p "start_choice=Do you want to configure the launcher and start it automatically? (Y/N): "
+    set /p "start_choice=Do you want to configure the launcher and start it automatically? (Y/N/Q to Quit): "
+    if /I "%start_choice%"=="Q" goto :eof
     if /I "%start_choice%"=="Y" (
         call :start_processes %1
     )
@@ -151,9 +153,11 @@ goto :eof
         set /a line_num+=1
         set /a display_num=line_num+1
         echo Line !display_num! - %%A
+        timeout /t 1 >nul
     )
     echo.
-    set /p "ip_line=Enter the number of the IP you want to use: "
+    set /p "ip_line=Enter the number of the IP you want to use (Q to Quit): "
+    if /I "%ip_line%"=="Q" goto :eof
     if "%ip_line%" NEQ "" call :set_ip %ip_line%
 goto :eof
 
@@ -192,7 +196,7 @@ goto :eof
     )
 goto :eof
 
-:: sets the IP in config.json
+:: sets the IP in config.json AND ENABLES DEV MODE
 :set_ip
     echo.
     echo ~~~ CHANGING LAUNCHER IP ~~~
@@ -225,8 +229,9 @@ goto :eof
     echo IP !ip_display_num! selected! Address: !ip_address!
 
     set "jsonPath=user\launcher\config.json"
-    set "key=\"Url\""
-    set "newval="!ip!""
+    set "key_url=\"Url\""
+    set "key_devmode=\"IsDevMode\""
+    set "newval_ip="!ip!""
 
     if not exist "%jsonPath%" (
         set "path_val=%cd%\%jsonPath%"
@@ -237,19 +242,27 @@ goto :eof
     > "%jsonPath%.tmp" (
       for /f "usebackq delims=" %%L in ("%jsonPath%") do (
         set "line=%%L"
-        echo !line! | findstr /C:%key% >nul
+        echo !line! | findstr /C:%key_url% >nul
         if not errorlevel 1 (
-          for /f "tokens=1* delims=:" %%a in ("!line!") do (
-            set "indent=%%a"
-            echo !indent!: !newval!,
-          )
+            for /f "tokens=1* delims=:" %%a in ("!line!") do (
+                set "indent=%%a"
+                echo !indent!: !newval_ip!,
+            )
         ) else (
-          echo !line!
+            echo !line! | findstr /C:%key_devmode% >nul
+            if not errorlevel 1 (
+                for /f "tokens=1* delims=:" %%a in ("!line!") do (
+                    set "indent=%%a"
+                    echo !indent!: true,
+                )
+            ) else (
+                echo !line!
+            )
         )
       )
     )
     move /Y "%jsonPath%.tmp" "%jsonPath%" >nul
-    echo Launcher config updated.
+    echo Launcher config updated. Dev Mode enabled.
 goto :eof
 
 :start_processes
