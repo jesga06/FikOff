@@ -37,12 +37,14 @@ public class Lang
     public string Index_Missing { get; set; } = "";
     public string Index_Range { get; set; } = "";
     public string Invalid_Ip_Index { get; set; } = "";
+    public string Invalid_Ip_Index_Fallback { get; set; } = "";
     public string Starting_Server { get; set; } = "";
     public string Server_Timeout_Begin { get; set; } = "";
     public string Server_Timeout_Timer { get; set; } = "";
     public string Server_Started { get; set; } = "";
     public string Server_Timeout_End { get; set; } = "";
     public string Server_Error_Mystical { get; set; } = "";
+    public string Mystical_Error { get; set; } = "";
     public string Starting_Launcher { get; set; } = "";
     public string Changing_Ip { get; set; } = "";
     public string Deleting_Files { get; set; } = "";
@@ -57,6 +59,7 @@ public class Lang
     public string Thanks { get; set; } = "";
     public string Press_Enter { get; set; } = "";
     public string Start_Quick { get; set; } = "";
+    public string Config_Key_Error { get; set; } = "";
 }
 
 public class Options
@@ -120,7 +123,7 @@ public class FikOff
 
             if (_strings == null)
             {
-                throw new InvalidOperationException($"Language '{selectedLangKey}' not found or is invalid in lang.json.");
+                throw new InvalidOperationException("No valid languages found in lang.json.");
             }
         }
         catch (Exception ex)
@@ -160,7 +163,7 @@ public class FikOff
             catch (Exception error)
             {
                 Log($"ip.txt error: {error.Message}");
-                Console.WriteLine(_strings.File_Error);
+                Console.WriteLine(_strings.File_Error.Replace("{error}", error.Message));
                 _multiplayerIps = new List<string>();
             }
         }
@@ -202,6 +205,10 @@ public class FikOff
         }
     }
 
+    /// <summary>
+    /// 'checkSingleAttempt' - Checks if the server is alive and running. Returns True if alive, False if not.
+    /// I haven't had networking classes yet, so I'm terribly sorry if this code is shit
+    /// </summary>
     private async Task<bool> CheckSingleAttempt(string ip, int port, int timeoutAttempt = 2)
     {
         Log($"cSA() - attempting to connect to {ip}:{port} with timeout {timeoutAttempt}s");
@@ -213,19 +220,28 @@ public class FikOff
             Log($"cSA() - successfully connected to {ip}:{port}");
             return true;
         }
-        catch (Exception ex)
+        catch (SocketException ex)
         {
             Log($"cSA() - failed to connect to {ip}:{port} - {ex.GetType().Name}: {ex.Message}");
             return false;
         }
+        catch (Exception ex)
+        {
+            Log($"cSA() - an error occurred while checking {ip}:{port} - {ex}");
+            return false;
+        }
     }
 
+    /// <summary>
+    /// Checks for server status every 5 seconds for 420 seconds.
+    /// Uses CheckSingleAttempt() for each try.
+    /// </summary>
     private async Task<string> TryConnection(Uri parsedUrl)
     {
         const int interval = 5;
         const int totalTimeout = 420;
 
-        if (parsedUrl == null || !parsedUrl.IsDefaultPort && parsedUrl.Port == -1)
+        if (parsedUrl == null || string.IsNullOrEmpty(parsedUrl.DnsSafeHost) || parsedUrl.Port == -1)
         {
             Log($"try_connection() - error: parsed_url is invalid: {parsedUrl}");
             return "ParsingError";
@@ -259,7 +275,11 @@ public class FikOff
         Log($"try_connection() - total timeout reached ({totalTimeout}s). Server {fullAddress} did not come online.");
         return "TimeoutHit";
     }
-
+    
+    /// <summary>
+    /// This was created because I couldnt stand having to write `input()` and input validations and loops over and over again on `start()`.
+    /// `prompt` and `retryprompt` must be in "string_name" format, not the actual string from the lang file.
+    /// </summary>
     private string InputPrompt(string promptKey, List<string> validOptions, string retryPromptKey = null)
     {
         Log($"input_prompt() - called with prompt '{promptKey}'");
@@ -271,11 +291,24 @@ public class FikOff
         
         while (!validOptions.Contains(value))
         {
+            if (new[] { "Q", "QUIT", "EXIT", "KILL" }.Contains(value))
+            {
+                Environment.Exit(0);
+            }
             Log($"input_prompt() - invalid input '{value}'");
             Console.WriteLine($"{GetString(errorKey)}\n");
             Thread.Sleep(1000);
-            Log("input_prompt() - retry prompt called");
-            Console.Write(GetString(retryPromptKey));
+
+            if (retryPromptKey != null)
+            {
+                Log("input_prompt() - retry prompt called");
+                Console.Write(GetString(retryPromptKey));
+            }
+            else
+            {
+                Log("input_prompt() - no retry prompt, recalling prompt");
+                Console.Write(GetString(promptKey));
+            }
             value = Console.ReadLine()?.ToUpperInvariant() ?? "";
         }
         Log($"input_prompt() - valid input '{value}'");
@@ -292,78 +325,93 @@ public class FikOff
         Environment.Exit(0);
     }
 
+    // Reason for creation is analogous to input_prompt().
     private void WriteConfigIp(string ip)
     {
         Log($"write_config_ip() - called with ip='{ip}'");
         var configPath = _paths["config"];
-        if (!File.Exists(configPath)) return;
-        
-        Log("write_config_ip() - reading and writing config");
         try
         {
-            var lines = File.ReadAllLines(configPath).ToList();
-            bool urlWritten = false;
-            bool devModeWritten = false;
+            Log("write_config_ip() - reading and parsing config.json");
+            string jsonString = File.ReadAllText(configPath);
+            var jsonDoc = JsonDocument.Parse(jsonString, new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip });
+            var root = jsonDoc.RootElement.Clone();
 
-            for (int i = 0; i < lines.Count; i++)
+            Log("write_config_ip() - modifying data in memory");
+            // This is a more complex but safer way to modify JSON without losing structure or comments
+            using var stream = new MemoryStream();
+            using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
             {
-                var trimmedLine = lines[i].Trim();
-                if (!urlWritten && trimmedLine.StartsWith("\"Url\":", StringComparison.OrdinalIgnoreCase))
+                writer.WriteStartObject();
+                foreach (var property in root.EnumerateObject())
                 {
-                    Log("write_config_ip() - found 'Url' line. writing IP");
-                    var indent = lines[i].Substring(0, lines[i].IndexOf('"'));
-                    lines[i] = $"{indent}\"Url\": \"{ip}\",";
-                    urlWritten = true;
+                    if (property.NameEquals("Url"))
+                    {
+                        writer.WriteString("Url", ip);
+                    }
+                    else if (property.NameEquals("IsDevMode"))
+                    {
+                        writer.WriteBoolean("IsDevMode", true);
+                    }
+                    else
+                    {
+                        property.WriteTo(writer);
+                    }
                 }
-                else if (!devModeWritten && trimmedLine.StartsWith("\"IsDevMode\":", StringComparison.OrdinalIgnoreCase))
-                {
-                    Log("write_config_ip() - found 'IsDevMode' line. writing 'true,'");
-                    var indent = lines[i].Substring(0, lines[i].IndexOf('"'));
-                    lines[i] = $"{indent}\"IsDevMode\": true,";
-                    devModeWritten = true;
-                }
+                writer.WriteEndObject();
             }
-            File.WriteAllLines(configPath, lines);
+            string newJson = Encoding.UTF8.GetString(stream.ToArray());
+            
+            Log("write_config_ip() - writing modified data back to config.json");
+            File.WriteAllText(configPath, newJson);
         }
-        catch (Exception ex)
+        catch (FileNotFoundException)
         {
-            Log($"write_config_ip() - error writing config: {ex.Message}");
+            Log($"write_config_ip() - config file not found at {configPath}");
+            Console.WriteLine(_strings.Config_Not_Found.Replace("{path}", configPath));
+        }
+        catch (Exception e)
+        {
+            Log($"write_config_ip() - error processing JSON file: {e}");
+            Console.WriteLine(_strings.Config_Key_Error.Replace("{error}", e.Message));
         }
     }
     
+    // This function now ONLY handles the setup routine (copying/removing mods).
     public void PerformSetup(string type)
     {
-        Log($"PerformSetup() - called for type '{type}'");
+        Log($"perform_setup() - called for type '{type}'");
         if (type == "sp")
         {
-            Log("PerformSetup() - calling RemoveFika() for SP.");
+            Log("perform_setup() - calling remove_fika() for SP.");
             if (!_dryRun) RemoveFika();
         }
         else if (type == "mpc" || type == "mph")
         {
-            Log("PerformSetup() - calling Copy() for MP.");
+            Log("perform_setup() - calling copy() for MP.");
             if (!_dryRun) Copy();
         }
     }
 
+    // This function now ONLY handles starting the processes and waiting for the server.
     public async Task StartProcesses(string type)
     {
-        Log($"StartProcesses() - called for type '{type}'");
+        Log($"start_processes() - called for type '{type}'");
         if (type == "sp" || type == "mph")
         {
-            Log($"StartProcesses() - mode is '{type}', starting server.");
+            Log($"start_processes() - mode is '{type}', starting server.");
             Console.WriteLine(_strings.Starting_Server);
             Console.WriteLine(_strings.SvMsg.Any() ? _strings.SvMsg[_rng[0]] : "");
             
             if (!_dryRun)
             {
-                Log("StartProcesses() - dry_run is false, starting server process.");
+                Log("start_processes() - dry_run is false, starting server process.");
                 StartProcess(_paths["server"]);
-                Log("StartProcesses() - calling TryConnection()");
+                Log("start_processes() - calling try_connection()");
                 string result = await TryConnection(_svip);
                 if (result != "True")
                 {
-                    Log($"StartProcesses() - TryConnection failed with result: {result}");
+                    Log($"start_processes() - try_connection failed with result: {result}");
                     var errorMap = new Dictionary<string, string>
                     {
                         { "ParsingError", _strings.Parsing_Error },
@@ -374,12 +422,12 @@ public class FikOff
             }
         }
 
-        Log("StartProcesses() - starting launcher.");
+        Log("start_processes() - starting launcher.");
         Console.WriteLine(_strings.Starting_Launcher);
         Console.WriteLine(_strings.LMsg.Any() ? _strings.LMsg[_rng[1]] : "");
         if (!_dryRun)
         {
-            Log("StartProcesses() - dry_run is false, starting launcher process.");
+            Log("start_processes() - dry_run is false, starting launcher process.");
             StartProcess(_paths["launcher"]);
         }
     }
@@ -422,7 +470,9 @@ public class FikOff
         }
 
         string targetIp = null;
-
+        
+        // The curses that past me have bestowed upon myself have been lifted.
+        // I now have been enlightened by my own mistakes and have understood once again what dark algorithms the below codeblock executes.
         if (type == "sp")
         {
             Log("launcher_ip() - type is SP, setting target_ip to singleplayer_ip");
@@ -434,24 +484,32 @@ public class FikOff
             if (_args.IpIndex.HasValue)
             {
                 Log($"launcher_ip() - --ip-index provided with value {_args.IpIndex.Value}");
-                int selectedIndex = _args.IpIndex.Value - 1;
-                if (selectedIndex >= 0 && selectedIndex < _multiplayerIps.Count)
+                try
                 {
-                    targetIp = _multiplayerIps[selectedIndex];
-                    Log($"launcher_ip() - index is valid, IP selected: {targetIp}");
-                    Console.WriteLine(_strings.Ip_Selected.Replace("{num}", _args.IpIndex.Value.ToString()).Replace("{ip}", targetIp));
+                    int selectedIndex = _args.IpIndex.Value - 1;
+                    if (selectedIndex >= 0 && selectedIndex < _multiplayerIps.Count)
+                    {
+                        targetIp = _multiplayerIps[selectedIndex];
+                        Log($"launcher_ip() - index is valid, IP selected: {targetIp}");
+                        Console.WriteLine(_strings.Ip_Selected.Replace("{num}", _args.IpIndex.Value.ToString()).Replace("{ip}", targetIp));
+                    }
+                    else
+                    {
+                        Log("launcher_ip() - index is out of range");
+                        Console.WriteLine($"{_strings.Invalid_Ip_Index}\n{_strings.Index_Range.Replace("{range}", _multiplayerIps.Count.ToString())}");
+                    }
                 }
-                else
+                catch(IndexOutOfRangeException)
                 {
-                    Log("launcher_ip() - index is out of range");
-                    Console.WriteLine($"{_strings.Invalid_Ip_Index}\n{_strings.Index_Range.Replace("{range}", _multiplayerIps.Count.ToString())}");
+                    Log("launcher_ip() - caught IndexOutOfRangeException, likely ip_index issue");
+                    Console.WriteLine(_strings.Index_Missing);
                 }
             }
             else if (!_multiplayerIps.Any())
             {
                 Log("launcher_ip() - no MP IPs found, defaulting to SP IP");
-                Console.WriteLine(_strings.Ip_Missing_Ext);
                 targetIp = _singlePlayerIp;
+                Console.WriteLine(_strings.Ip_Missing_Ext.Replace("{ip}", targetIp));
             }
             else if (_multiplayerIps.Count == 1)
             {
@@ -468,7 +526,7 @@ public class FikOff
                     Console.WriteLine($"{i + 1} - {_multiplayerIps[i]}");
                     Thread.Sleep(500);
                 }
-                while (true)
+                while (true) // vai se foder andré renato
                 {
                     try
                     {
@@ -483,7 +541,7 @@ public class FikOff
                         }
                         else
                         {
-                            Console.WriteLine(_strings.Error_Select_Ip_Index);
+                            Console.WriteLine(_strings.Error_Select_Ip_Index.Replace("{range}", _multiplayerIps.Count.ToString()));
                             Thread.Sleep(2000);
                             Console.WriteLine(); // newline
                         }
@@ -514,18 +572,19 @@ public class FikOff
         }
     }
 
+    // Kinda self explanatory.
     public void Copy()
     {
-        Log("Copy() - called");
+        Log("copy() - called");
         Console.WriteLine(_strings.Deleting_Files);
         try
         {
-            Log("Copy() - calling RemoveFika() silently");
+            Log("copy() - calling remove_fika() silently");
             RemoveFika(silent: true);
         }
         catch (Exception error)
         {
-            Log($"Copy() - error during silent RemoveFika: {error.Message}");
+            Log($"copy() - error during silent remove_fika: {error.Message}");
         }
         Console.WriteLine(_strings.Residues_Removed);
         Thread.Sleep(500);
@@ -535,7 +594,7 @@ public class FikOff
         {
             if (!_dryRun)
             {
-                Log("Copy() - dry-run is false, copying files");
+                Log("copy() - dry-run is false, copying files");
                 CopyDir(_paths["modFikaUnins"], _paths["modFikaIns"]);
                 Directory.CreateDirectory(Path.GetDirectoryName(_paths["pluginFikaIns"]));
                 File.Copy(_paths["pluginFikaUnins"], _paths["pluginFikaIns"], true);
@@ -544,8 +603,8 @@ public class FikOff
         }
         catch (Exception erro)
         {
-            Log($"Copy() - error during copytree/copy: {erro.Message}");
-            Console.WriteLine($"{_strings.Install_Fail}\nError: {erro.Message}");
+            Log($"copy() - error during copytree/copy: {erro.Message}");
+            Console.WriteLine($"{_strings.Install_Fail.Replace("{error}", erro.Message)}");
         }
         Thread.Sleep(1000);
     }
@@ -560,25 +619,26 @@ public class FikOff
             CopyDir(dir, Path.Combine(dest, Path.GetFileName(dir)));
     }
 
+    // Same as above.
     public void RemoveFika(bool silent = false)
     {
-        Log($"RemoveFika() - called (silent={silent})");
+        Log($"remove_fika() - called (silent={silent})");
         try
         {
             if (!silent) Console.WriteLine(_strings.Uninstalling_Fika);
             
             if (!_dryRun)
             {
-                Log("RemoveFika() - dry-run is false, removing files");
+                Log("remove_fika() - dry-run is false, removing files");
                 if (File.Exists(_paths["pluginFikaIns"]))
                 {
                     File.Delete(_paths["pluginFikaIns"]);
-                    Log("RemoveFika() - removed plugin file.");
+                    Log("remove_fika() - removed plugin file.");
                 }
                 if (Directory.Exists(_paths["modFikaIns"]))
                 {
                     Directory.Delete(_paths["modFikaIns"], true);
-                    Log("RemoveFika() - removed mod directory.");
+                    Log("remove_fika() - removed mod directory.");
                 }
             }
             Thread.Sleep(1000);
@@ -586,12 +646,13 @@ public class FikOff
         }
         catch (Exception error)
         {
-            Log($"RemoveFika() - error: {error.Message}");
-            if (!silent) Console.WriteLine(_strings.Uninstall_Fail);
+            Log($"remove_fika() - error: {error.Message}");
+            if (!silent) Console.WriteLine(_strings.Uninstall_Fail.Replace("{error}", error.Message));
         }
         Thread.Sleep(1000);
     }
     
+    // This function handles the interactive mode.
     public async Task Start()
     {
         Log("start() - interactive mode started");
@@ -633,29 +694,44 @@ public class FikOff
         var main = new FikOff(opts);
         main.Log("main() initialized");
         
+        // Routine if CL-args were provided.
         if (!string.IsNullOrEmpty(main._args.LaunchMode))
         {
             string mode = main._args.LaunchMode;
             main.Log($"--launchmode provided. mode: {mode}, quick: {main._args.Quick}, setup: {main._args.Setup}");
 
+            // Setting the IP address. In quick mode, this only sets self.svip without writing to config.
             if (!main._args.Quick)
             {
                 main.LauncherIp(mode);
             }
             else
             {
+                // Determine svip without changing the config file.
+                // This is so try_connection() doesn't hang trying to connect to the wrong address.
                 string ipToParse = main._singlePlayerIp;
                 if ((mode == "mpc" || mode == "mph") && main._multiplayerIps.Any())
                 {
-                    int index = main._args.IpIndex.HasValue && main._args.IpIndex.Value -1 >= 0 && main._args.IpIndex.Value - 1 < main._multiplayerIps.Count 
-                                ? main._args.IpIndex.Value - 1 
-                                : 0;
-                    ipToParse = main._multiplayerIps[index];
+                    ipToParse = main._multiplayerIps[0]; // defaults to the first one
+                    if (main._args.IpIndex.HasValue)
+                    {
+                        if (main._args.IpIndex.Value -1 >= 0 && main._args.IpIndex.Value - 1 < main._multiplayerIps.Count)
+                        {
+                            ipToParse = main._multiplayerIps[main._args.IpIndex.Value - 1];
+                        }
+                        else
+                        {
+                            main.Log($"quick mode: --ip-index {main._args.IpIndex.Value} is out of range. falling back to first IP.");
+                            Console.WriteLine(main._strings.Invalid_Ip_Index);
+                            Console.WriteLine(main._strings.Invalid_Ip_Index_Fallback.Replace("{ip}", ipToParse));
+                        }
+                    }
                 }
                 Uri.TryCreate(ipToParse, UriKind.Absolute, out main._svip);
                 main.Log($"quick mode: svip set to {main._svip}");
             }
 
+            // Calls perform setup if --setup is present and --quick isnt.
             if (main._args.Setup && !main._args.Quick)
             {
                 main.Log("--setup flag detected.");
@@ -667,10 +743,16 @@ public class FikOff
         }
         else
         {
+            // Interactive mode (no --launchmode argument was provided).
             main.Log("No --launchmode provided. Defaulting to interactive mode.");
             try
             {
                 await main.Start();
+            }
+            catch(InvalidOperationException error)
+            {
+                 main.Log($"configuration error in interactive mode: {error}");
+                 Console.WriteLine("No valid languages found in lang.json.");
             }
             catch(KeyNotFoundException error)
             {
@@ -680,6 +762,8 @@ public class FikOff
             catch (Exception error)
             {
                 main.Log($"something went to shit in interactive mode: {error}");
+                Console.WriteLine(main._strings.Mystical_Error.Replace("{error}", error.Message));
+                Console.ReadLine();
             }
         }
     }
